@@ -1,0 +1,21 @@
+# Set correct MIME types for JavaScript modules
+AddType application/javascript .js
+AddType application/javascript .mjs
+
+# Enable CORS for module loading
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Content-Type "application/javascript" env=IS_JS
+</IfModule>
+
+# Forzar tipo MIME para módulos JavaScript
+<FilesMatch "\.js$">
+    SetEnv IS_JS true
+    ForceType application/javascript
+</FilesMatch>
+
+# Asegurar que los archivos JS se sirven con el tipo MIME correcto
+<IfModule mod_mime.c>
+    RemoveType .js
+    AddType application/javascript .js
+</IfModule>
