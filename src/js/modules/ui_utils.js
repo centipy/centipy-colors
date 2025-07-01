@@ -108,8 +108,10 @@ function copyToClipboard(text) {
 
 /** Updates the UI percentage display for sliders. */
 function updateGlobalSlidersUI() {
-    brightnessValueSpan.textContent = `${Math.round(parseFloat(brightnessSlider.value) * 100)}%`;
-    saturationValueSpan.textContent = `${Math.round(parseFloat(saturationSlider.value) * 100)}%`;
+    // MODIFICATION START
+    brightnessValueSpan.textContent = `${parseInt(brightnessSlider.value, 10)}%`;
+    // MODIFICATION END
+    saturationValueSpan.textContent = `${Math.round(parseFloat(saturationSlider.value) * 100)}%`; // This one was already correct
 }
 
 /** Manages focus trapping and returning for modals/popups. */

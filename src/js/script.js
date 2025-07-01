@@ -8,8 +8,11 @@ import * as StorageManager from './modules/storage_manager.js';
 import * as ThemeManager from './modules/theme_manager.js';
 import * as UIUtils from './modules/ui_utils.js';
 
-// Optional: Import any third-party libraries
-// import html2canvas from './lib/html2canvas.min.js';
+// MODIFICATION START: Removed local html2canvas import.
+// The CDN version is loaded globally in index.php/default.php.
+// import html2canvas from './lib/html2canvas.min.js'; 
+// MODIFICATION END
+
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Initializing CENTIPY COLOR...");
@@ -32,14 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const paletteContainer = document.getElementById('palette-container');
     const colorCountInput = document.getElementById('color-count-input');
     const harmonySelect = document.getElementById('harmony-select');
-    const baseColorInput = document.getElementById('base-color-input');
-    const applyBaseColorBtn = document.getElementById('apply-base-color');
+    const brightnessSlider = document.getElementById('brightness-slider');
+    const saturationSlider = document.getElementById('saturation-slider');
+    // MODIFICATION START: Removed baseColorInput and applyBaseColorBtn
+    // const baseColorInput = document.getElementById('base-color-input');
+    // const applyBaseColorBtn = document.getElementById('apply-base-color');
+    // MODIFICATION END
     const generateBtn = document.getElementById('generate-btn');
     const undoBtn = document.getElementById('undo-btn');
     
     // Slider elements
-    const brightnessSlider = document.getElementById('brightness-slider');
-    const saturationSlider = document.getElementById('saturation-slider');
     const brightnessValueSpan = document.getElementById('brightness-value');
     const saturationValueSpan = document.getElementById('saturation-value');
     
@@ -128,7 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
         harmonySelect,
         brightnessSlider,
         saturationSlider,
-        baseColorInput,
+        // MODIFICATION START: Removed baseColorInput from elements passed
+        // baseColorInput,
+        // MODIFICATION END
         undoBtn
     }, {
         currentHslPaletteColors: state.currentHslPaletteColors,
@@ -208,9 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Slider events
         if (brightnessSlider) {
             brightnessSlider.addEventListener('input', function() {
-                const value = parseFloat(this.value);
-                const percentage = Math.round(value * 100);
-                brightnessValueSpan.textContent = `${percentage}%`;
+                const value = parseInt(this.value, 10);
+                brightnessValueSpan.textContent = `${value}%`;
                 
                 // Apply changes in real-time to the palette
                 PaletteGenerator.adjustPaletteBrightness(value);
@@ -226,6 +232,48 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
+        // Debounce utility function
+        const debounce = (func, delay) => {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        };
+
+        // Real-time update for color count input
+        if (colorCountInput) {
+            const debouncedGeneratePalette = debounce(() => {
+                PaletteGenerator.generatePalette();
+                // Reset sliders when generating new palette via color count change
+                if (brightnessSlider && brightnessValueSpan) {
+                    brightnessSlider.value = 0; // Reset to 0%
+                    brightnessValueSpan.textContent = '0%'; // Reset to 0%
+                }
+                if (saturationSlider && saturationValueSpan) {
+                    saturationSlider.value = 0;
+                    saturationValueSpan.textContent = '0%';
+                }
+                // Clear stored original colors
+                window._originalPaletteColors = null;
+                window._originalPaletteBrightnessColors = null;
+                console.log("Palette generated via color count input (debounced)");
+            }, 500); // 500ms debounce delay
+
+            colorCountInput.addEventListener('input', () => {
+                // Ensure the input value is within bounds before debouncing
+                let value = parseInt(colorCountInput.value, 10);
+                if (isNaN(value) || value < 3) {
+                    value = 3;
+                } else if (value > 8) {
+                    value = 8;
+                }
+                colorCountInput.value = value; // Update input field to clamped value
+                debouncedGeneratePalette();
+            });
+        }
+        
         // Palette generation events
         if (generateBtn) {
             generateBtn.addEventListener('click', () => {
@@ -233,8 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Reset sliders when generating new palette
                 if (brightnessSlider && brightnessValueSpan) {
-                    brightnessSlider.value = 1;
-                    brightnessValueSpan.textContent = '100%';
+                    brightnessSlider.value = 0; // Reset to 0%
+                    brightnessValueSpan.textContent = '0%'; // Reset to 0%
                 }
                 
                 if (saturationSlider && saturationValueSpan) {
@@ -249,9 +297,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Generate palette clicked");
             });
         }
+        // MODIFICATION START: Removed applyBaseColorBtn event listener
+        /*
         if (applyBaseColorBtn) {
             applyBaseColorBtn.addEventListener('click', PaletteGenerator.applyBaseColor);
         }
+        */
+        // MODIFICATION END
         
         // Fix for undo button
         if (undoBtn) {

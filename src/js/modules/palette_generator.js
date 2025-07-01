@@ -24,7 +24,9 @@ let colorCountInput;
 let harmonySelect;
 let brightnessSlider;
 let saturationSlider;
-let baseColorInput;
+// MODIFICATION START: Removed baseColorInput reference
+// let baseColorInput; 
+// MODIFICATION END
 let undoBtn;
 
 // Function references
@@ -43,7 +45,9 @@ function init(elements, state, constants, utils) {
     harmonySelect = elements.harmonySelect;
     brightnessSlider = elements.brightnessSlider;
     saturationSlider = elements.saturationSlider;
-    baseColorInput = elements.baseColorInput;
+    // MODIFICATION START: Removed baseColorInput assignment
+    // baseColorInput = elements.baseColorInput;
+    // MODIFICATION END
     undoBtn = elements.undoBtn;
     
     // Store state references
@@ -168,17 +172,12 @@ function generateHarmony(baseHue, colorCount, harmonyType, brightnessMult = 1, s
     
     switch (harmonyType) {
         case 'monochromatic':
-            // Modificación para asegurar variación en paletas monocromáticas
-            // Si no hay un color base específico, generamos uno aleatorio cada vez
-            if (!baseColorInput.value.trim()) {
-                baseHue = Math.floor(Math.random() * 360);
-            } else {
-                // Pequeña variación incluso con color seleccionado
-                baseHue = (baseHue + Math.floor(Math.random() * 10) - 5 + 360) % 360;
-            }
+            // MODIFICATION START: Removed internal baseHue generation. Use the baseHue parameter.
+            // baseHue = Math.floor(Math.random() * 360); // This line was removed
+            // MODIFICATION END
             
             // Mismo matiz, variando saturación y luminosidad
-            const lightnessStep = 80 / (colorCount - 1);
+            const lightnessStep = colorCount > 1 ? 80 / (colorCount - 1) : 0; // Handle colorCount = 1 to prevent division by zero
             const minLightness = 10;
             
             for (let i = 0; i < colorCount; i++) {
@@ -186,7 +185,7 @@ function generateHarmony(baseHue, colorCount, harmonyType, brightnessMult = 1, s
                 // Añadir variación de saturación para más variedad
                 const saturationVariation = Math.random() * 10 - 5; // Variación de -5% a +5%
                 const s = Math.max(0, Math.min(100, baseSaturation + saturationVariation));
-                colors.push({ h: baseHue, s, l: lightness });
+                colors.push({ h: baseHue, s, l: lightness }); // Use the baseHue parameter
             }
             
             // Ordenar por luminosidad, de oscuro a claro
@@ -268,59 +267,68 @@ function generatePalette() {
     const harmonyType = harmonySelect.value;
     
     // Get the brightness and saturation multipliers
-    const brightnessMult = parseFloat(brightnessSlider.value);
-    const saturationMult = parseFloat(saturationSlider.value);
+    // NOTE: Brightness and saturation sliders now act as "adjustments" from base colors,
+    // so we don't pass their values directly to generateHarmony.
+    // generateHarmony will use its internal defaults, then adjustments are applied AFTER generation.
+    // This is how the real-time sliders work.
     
-    // Generate base color if none exists
+    // MODIFICATION START: Simplified base hue determination as baseColorInput is removed
     let baseHue;
+    // If no colors yet or first color is undefined, generate a random base hue
     if (currentHslPaletteColors.length === 0 || !currentHslPaletteColors[0]) {
         baseHue = Math.floor(Math.random() * 360);
     } else {
+        // Otherwise, use the hue of the first color in the current palette
         baseHue = currentHslPaletteColors[0].h;
     }
+    // MODIFICATION END
     
     // Generate new colors based on harmony type
-    const newColors = generateHarmony(baseHue, colorCount, harmonyType, brightnessMult, saturationMult);
+    const newColors = generateHarmony(baseHue, colorCount, harmonyType); // Removed brightnessMult, saturationMult here
     
     // Apply locked colors
+    let finalColors = [...newColors]; // Start with generated colors
     if (lockedColors.length > 0) {
         for (let i = 0; i < Math.min(newColors.length, lockedColors.length); i++) {
-            if (lockedColors[i] && i < currentHslPaletteColors.length) {
-                newColors[i] = { ...currentHslPaletteColors[i] };
+            if (lockedColors[i] && currentHslPaletteColors[i]) {
+                finalColors[i] = { ...currentHslPaletteColors[i] }; // Preserve locked color
             }
         }
     }
     
     // Update state
-    currentHslPaletteColors = newColors;
+    currentHslPaletteColors = finalColors; // Use finalColors with locks applied
     
     // Ensure lockedColors array matches the new colors array length
-    if (lockedColors.length !== newColors.length) {
-        lockedColors = Array(newColors.length).fill(false);
-        if (lockedColors.length > 0) {
-            for (let i = 0; i < Math.min(newColors.length, lockedColors.length); i++) {
-                lockedColors[i] = lockedColors[i] || false;
-            }
-        }
+    if (lockedColors.length !== currentHslPaletteColors.length) {
+        // If count changes, reset all locks
+        lockedColors = Array(currentHslPaletteColors.length).fill(false);
     }
     
     // Display the new palette
     displayPalette();
+    
+    // After generating and displaying, apply current slider adjustments
+    adjustPaletteBrightness(parseFloat(brightnessSlider.value));
+    adjustPaletteSaturation(parseInt(saturationSlider.value, 10));
     
     console.log("New palette generated with", colorCount, "colors using", harmonyType, "harmony");
 }
 
 /**
  * Applies a user-specified base color
+ * MODIFICATION START: Removed this function as baseColorInput is being removed
  */
+/*
 function applyBaseColor() {
     const colorInput = baseColorInput.value.trim();
     
     if (!colorInput) {
-        // If empty, generate a random color
+        // If empty, generate a random color and then generate palette
         const randomHsl = getRandomHsl();
         baseColorInput.value = hslToHex(randomHsl.h, randomHsl.s, randomHsl.l);
         showNotification('Color base aleatorio generado', 'info');
+        generatePalette(); // Generate palette with this new random base
         return;
     }
     
@@ -329,6 +337,7 @@ function applyBaseColor() {
         if (parsedColor) {
             baseColorInput.value = hslToHex(parsedColor.h, parsedColor.s, parsedColor.l);
             showNotification('Color base aplicado', 'success');
+            generatePalette(); // Generate palette with this new base
         } else {
             throw new Error('Formato de color no reconocido');
         }
@@ -336,6 +345,8 @@ function applyBaseColor() {
         showNotification('Error: ' + error.message, 'error');
     }
 }
+*/
+// MODIFICATION END
 
 /**
  * Displays the current palette in the UI
@@ -361,16 +372,10 @@ function displayPalette() {
         swatch.setAttribute('role', 'button'); // Make it act like a button
         swatch.setAttribute('tabindex', '0'); // Make it focusable
 
-        // Usar animación por defecto
-        const animate = true;
-        if (!animate) {
-            swatch.style.animation = 'none';
-            swatch.style.opacity = '1';
-            swatch.style.transform = 'translateY(0) scale(1)';
-        } else {
-             // Ensure animation delay is calculated correctly even if palette size changes
-             swatch.style.animationDelay = `${0.05 * index}s`;
-        }
+        // Ensure swatches are immediately visible and positioned correctly for 16-bit style
+        swatch.style.opacity = '1';
+        swatch.style.transform = 'translateY(0) scale(1)';
+        swatch.style.animation = 'none'; // Explicitly remove any default animation
 
         const infoDiv = document.createElement('div');
         infoDiv.className = 'color-info';
@@ -488,7 +493,7 @@ function adjustPaletteSaturation(saturationValue) {
 
 /**
  * Adjusts the brightness of all colors in the current palette in real-time
- * @param {number} brightnessValue - Value from 0.1 to 1.9 representing brightness adjustment
+ * @param {number} brightnessValue - Value from -100 to 100 representing brightness adjustment
  */
 function adjustPaletteBrightness(brightnessValue) {
     if (!currentHslPaletteColors || currentHslPaletteColors.length === 0) return;
@@ -498,35 +503,27 @@ function adjustPaletteBrightness(brightnessValue) {
         window._originalPaletteBrightnessColors = currentHslPaletteColors.map(color => ({ ...color }));
     }
     
-    // Apply adjustment to each color
     currentHslPaletteColors.forEach((color, index) => {
         const originalColor = window._originalPaletteBrightnessColors[index];
-        
-        // Calculate new lightness based on brightness multiplier
         let newLightness;
-        
-        if (brightnessValue >= 1) {
-            // Increase brightness (make lighter)
-            const factor = brightnessValue - 1; // 0 to 0.9
-            newLightness = originalColor.l + ((100 - originalColor.l) * factor);
-        } else {
-            // Decrease brightness (make darker)
-            newLightness = originalColor.l * brightnessValue;
+
+        if (brightnessValue === 0) {
+            newLightness = originalColor.l;
+        } else if (brightnessValue > 0) {
+            // Increase lightness: original_l + (100 - original_l) * (brightnessValue / 100)
+            newLightness = originalColor.l + ((100 - originalColor.l) * (brightnessValue / 100));
+        } else { // brightnessValue < 0
+            // Decrease lightness: original_l + original_l * (brightnessValue / 100)
+            // Simplified: original_l * (1 + brightnessValue / 100)
+            newLightness = originalColor.l * (1 + (brightnessValue / 100));
         }
         
-        // Ensure lightness stays within valid range (0-100)
-        newLightness = Math.round(Math.max(0, Math.min(100, newLightness)));
+        color.l = Math.round(clamp(newLightness, 0, 100)); // Ensure within 0-100 and round
         
-        // Update the color
-        color.l = newLightness;
-        
-        // Update the DOM element if it exists
         const colorSwatch = paletteContainer.querySelector(`.color-swatch[data-index="${index}"]`);
         if (colorSwatch) {
             const hexCode = hslToHex(color.h, color.s, color.l);
             colorSwatch.style.backgroundColor = hexCode;
-            
-            // Update hex code display
             const hexElement = colorSwatch.querySelector('.hex-code');
             if (hexElement) {
                 hexElement.textContent = hexCode.toUpperCase();
@@ -544,4 +541,7 @@ export {
     displayPalette,
     adjustPaletteSaturation,
     adjustPaletteBrightness
+    // MODIFICATION START: Removed applyBaseColor from exports
+    // applyBaseColor
+    // MODIFICATION END
 };
