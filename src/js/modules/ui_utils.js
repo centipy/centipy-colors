@@ -86,24 +86,38 @@ function showNotification(message, isError = false, duration = 3000) {
 }
 
 /**
- * Copies text to clipboard
- * @param {string} text - Text to copy
+ * Copia texto al portapapeles usando la API moderna de Clipboard.
+ * Devuelve una Promesa que se resuelve al éxito o se rechaza al fallo.
+ * @param {string} text - Texto a copiar
+ * @returns {Promise<void>} Una promesa que se resuelve si el texto se copia exitosamente.
  */
 function copyToClipboard(text) {
-    // Create a temporary textarea element
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'absolute';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    
-    // Select and copy the text
-    textarea.select();
-    document.execCommand('copy');
-    
-    // Clean up
-    document.body.removeChild(textarea);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    } else {
+        // Fallback para navegadores antiguos (menos fiable)
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+
+        textarea.select();
+        let success = false;
+        try {
+            success = document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback de copiado fallido:', err);
+        }
+        document.body.removeChild(textarea);
+
+        if (success) {
+            return Promise.resolve();
+        } else {
+            return Promise.reject(new Error('El comando de copiado falló en el fallback.'));
+        }
+    }
 }
 
 /** Updates the UI percentage display for sliders. */
@@ -182,5 +196,6 @@ export {
     init,
     showNotification,
     copyToClipboard,
-    updateGlobalSlidersUI
+    updateGlobalSlidersUI,
+    
 };

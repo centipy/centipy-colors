@@ -218,92 +218,61 @@ function deletePalette(idToDelete) {
 
 /** Loads a selected palette from favorites into the main generator. */
 function loadPaletteFromFavorites(idToLoad) {
-     const palettes = getSavedPalettes();
-     const palette = palettes.find(p => p.id === idToLoad);
+    const palettes = getSavedPalettes();
+    const palette = palettes.find(p => p.id === idToLoad);
 
-     if (palette && palette.colors && Array.isArray(palette.colors)) {
-        // Attempt to parse all colors first to ensure validity
-        const loadedHslColors = palette.colors.map(hex => hexToHsl(hex)).filter(hsl => hsl !== null);
+    if (!palette || !palette.colors || !Array.isArray(palette.colors)) {
+        showNotification("Error al cargar la paleta seleccionada.", true);
+        return;
+    }
 
-        if (loadedHslColors.length !== palette.colors.length) {
-            showNotification("Error: La paleta guardada contiene colores inválidos.", true);
-            return; // Don't load partially
-        }
+    // Intenta analizar todos los colores primero para asegurar la validez
+    const loadedHslColors = palette.colors.map(hex => hexToHsl(hex)).filter(hsl => hsl !== null);
 
-        saveToHistory(); // Save current state before loading
+    if (loadedHslColors.length !== palette.colors.length) {
+        showNotification("Error: La paleta guardada contiene colores inválidos.", true);
+        return; // No cargar parcialmente
+    }
 
-        // Update the state variables
-        currentHslPaletteColors.length = 0; // Clear the array
-        loadedHslColors.forEach(color => currentHslPaletteColors.push(color)); // Add new colors
-        
-        lockedColors = Array(currentHslPaletteColors.length).fill(false); // Reset locks
-        colorCountInput.value = currentHslPaletteColors.length; // Update count input
-        
-        // Reset the global sliders
-        const brightnessSlider = document.getElementById('brightness-slider');
-        const brightnessValueSpan = document.getElementById('brightness-value');
-        const saturationSlider = document.getElementById('saturation-slider');
-        const saturationValueSpan = document.getElementById('saturation-value');
-        
-        if (brightnessSlider && brightnessValueSpan) {
-            brightnessSlider.value = 1;
-            brightnessValueSpan.textContent = '100%';
-        }
-        
-        if (saturationSlider && saturationValueSpan) {
-            saturationSlider.value = 0;
-            saturationValueSpan.textContent = '0%';
-        }
-        
-        // Clear any stored original palette colors
-        window._originalPaletteColors = null;
-        window._originalPaletteBrightnessColors = null;
-        
-        // Directly manipulate the DOM to ensure the palette is displayed
-        const paletteContainer = document.getElementById('palette-container');
-        if (paletteContainer) {
-            paletteContainer.innerHTML = ''; // Clear existing swatches
-            
-            // Create new swatches for each color
-            currentHslPaletteColors.forEach((color, index) => {
-                const hex = hslToHex(color.h, color.s, color.l);
-                
-                const swatch = document.createElement('div');
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = hex;
-                swatch.dataset.index = index;
-                swatch.title = `Ajustar HSL | Ctrl+Clic para copiar ${hex}`;
-                swatch.setAttribute('role', 'button');
-                swatch.setAttribute('tabindex', '0');
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'color-info';
-                
-                const hexSpan = document.createElement('span');
-                hexSpan.className = 'hex-code';
-                hexSpan.textContent = hex.toUpperCase();
-                
-                const lockButton = document.createElement('button');
-                lockButton.type = 'button';
-                lockButton.className = 'lock-btn';
-                lockButton.title = 'Bloquear Color';
-                lockButton.innerHTML = `<svg aria-hidden="true"><use xlink:href="#icon-unlock"></use></svg>`;
-                
-                infoDiv.appendChild(hexSpan);
-                infoDiv.appendChild(lockButton);
-                swatch.appendChild(infoDiv);
-                
-                paletteContainer.appendChild(swatch);
-            });
-        } else {
-            // If we can't find the container, try using the displayPalette function
-            displayPalette(false);
-        }
-        
-        showNotification(`Paleta "${palette.name}" cargada.`);
-     } else {
-         showNotification("Error al cargar la paleta seleccionada.", true);
-     }
+    saveToHistory(); // Guarda el estado actual antes de cargar uno nuevo
+
+    // 1. Actualiza el estado de la aplicación
+    currentHslPaletteColors.length = 0; // Limpia el array actual
+    currentHslPaletteColors.push(...loadedHslColors); // Añade los nuevos colores
+    
+    // Asumiendo que al cargar una paleta, ningún color está bloqueado inicialmente
+    lockedColors.length = 0;
+    lockedColors.push(...Array(currentHslPaletteColors.length).fill(false));
+    
+    colorCountInput.value = currentHslPaletteColors.length; // Actualiza el input de cantidad
+
+    // 2. Llama a la función principal para redibujar la paleta
+    // Esto asegura que se usen los estilos, eventos y estructura correctos.
+    displayPalette(); 
+
+    // 3. Resetea los sliders globales a su estado por defecto
+    const brightnessSlider = document.getElementById('brightness-slider');
+    const brightnessValueSpan = document.getElementById('brightness-value');
+    const saturationSlider = document.getElementById('saturation-slider');
+    const saturationValueSpan = document.getElementById('saturation-value');
+    
+    if (brightnessSlider && brightnessValueSpan) {
+        brightnessSlider.value = 0; // Se resetea a 0% en lugar de 100%
+        brightnessValueSpan.textContent = '0%';
+    }
+    
+    if (saturationSlider && saturationValueSpan) {
+        saturationSlider.value = 0;
+        saturationValueSpan.textContent = '0%';
+    }
+
+    // 4. Limpia los colores originales almacenados para ajustes
+    window._originalPaletteColors = null;
+    window._originalPaletteBrightnessColors = null;
+
+    // 5. Muestra la notificación de éxito
+    showNotification(`Paleta "${palette.name}" cargada.`);
+    favoritesModalControls.closeModal(); // Cierra el modal después de cargar
 }
 
 // Modify the loadPalette function to properly handle palette loading

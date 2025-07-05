@@ -38,16 +38,16 @@
 
                      <div class="control-group">
                         <label for="color-count-input">Número de Colores:</label>
-                        <input type="number" id="color-count-input" min="3" max="8" value="5" title="Cantidad de colores a generar (3 a 8)">
+                        <input type="number" id="color-count-input" min="2" max="20" value="5" title="Cantidad de colores a generar (3 a 8)">
                     </div>
 
                      <div class="control-group range-group">
-                        <label for="brightness-slider">Brillo Global:</label>
+                        <label for="brightness-slider">BRILLO</label>
                         <input type="range" id="brightness-slider" min="-100" max="100" value="0" step="5" title="Ajustar Brillo Global en tiempo real (-100% a 100%)">
                         <span id="brightness-value" class="range-value">0%</span>
                     </div>
                      <div class="control-group range-group">
-                        <label for="saturation-slider">Saturación Global:</label>
+                        <label for="saturation-slider">SATURACION</label>
                         <input type="range" id="saturation-slider" min="-100" max="100" value="0" step="5" title="Ajustar Saturación Global en tiempo real (-100% a 100%)">
                         <span id="saturation-value" class="range-value">0%</span>
                     </div>
@@ -61,9 +61,26 @@
                          </button>
                     </div>
                     <div class="button-group export-actions">
-                        <button type="button" id="copy-all-btn" class="action-btn secondary-btn" title="Copiar todos los códigos HEX de la paleta actual al portapapeles">
-                            <svg width="16" height="16" aria-hidden="true"><use xlink:href="#icon-copy"></use></svg> Copiar HEX
+                        <button type="button" id="copy-all-btn" class="action-btn secondary-btn" title="Copiar la paleta en diferentes formatos">
+                            <svg width="16" height="16" aria-hidden="true"><use xlink:href="#icon-copy"></use></svg> Copiar
                         </button>
+
+                        <div id="copy-options-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title" hidden>
+                            <div class="modal-content">
+                                <button type="button" class="close-modal-btn" title="Cerrar ventana de copiado (Esc)" aria-label="Cerrar opciones de copiado">
+                                    <svg width="20" height="20" aria-hidden="true"><use xlink:href="#icon-close"></use></svg>
+                                </button>
+                                <h2 id="copy-modal-title">Copiar Paleta en Formato</h2>
+                                <div class="copy-options-grid">
+                                    <button type="button" id="copy-hex-btn" class="action-btn primary-btn">Copiar HEX</button>
+                                    <button type="button" id="copy-rgb-btn" class="action-btn secondary-btn">Copiar RGB</button>
+                                    <button type="button" id="copy-hsl-btn" class="action-btn secondary-btn">Copiar HSL</button>
+                                    <button type="button" id="copy-css-vars-btn" class="action-btn secondary-btn">Copiar CSS</button>
+                                </div>
+                                <p class="modal-tip">Selecciona un formato para copiar todos los colores de la paleta al portapapeles.</p>
+                            </div>
+                        </div>
+                        
                          <button type="button" id="export-css-btn" class="action-btn secondary-btn" title="Copiar la paleta como variables CSS personalizadas (:root)">
                             <svg width="16" height="16" aria-hidden="true"><use xlink:href="#icon-css"></use></svg> Copiar CSS
                         </button>

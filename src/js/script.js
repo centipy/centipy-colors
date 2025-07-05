@@ -264,10 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
             colorCountInput.addEventListener('input', () => {
                 // Ensure the input value is within bounds before debouncing
                 let value = parseInt(colorCountInput.value, 10);
-                if (isNaN(value) || value < 3) {
-                    value = 3;
-                } else if (value > 8) {
-                    value = 8;
+                if (isNaN(value) || value < 2) {
+                    value = 2;
+                } else if (value > 20) {
+                    value = 20;
                 }
                 colorCountInput.value = value; // Update input field to clamped value
                 debouncedGeneratePalette();
